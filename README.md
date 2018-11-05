@@ -1,20 +1,20 @@
-# SynthText
+# SynthText on python3 and opencv3
 Code for generating synthetic text images as described in ["Synthetic Data for Text Localisation in Natural Images", Ankush Gupta, Andrea Vedaldi, Andrew Zisserman, CVPR 2016](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
 
 
 **Synthetic Scene-Text Image Samples**
 ![Synthetic Scene-Text Samples](samples.png "Synthetic Samples")
 
-The library is written in Python. The main dependencies are:
+The library is written in Python3. The main dependencies are:
 
 ```
-pygame, opencv (cv2), PIL (Image), numpy, matplotlib, h5py, scipy
+pygame, opencv3 (cv2), PIL (Image), numpy, matplotlib, h5py, scipy
 ```
 
 ### Generating samples
 
 ```
-python gen.py --viz
+python3 gen.py --viz
 ```
 
 This will download a data file (~56M) to the `data` directory. This data file includes:

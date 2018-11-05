@@ -1,3 +1,4 @@
+from __future__ import print_function
 from __future__ import division
 import numpy as np 
 from ransac import fit_plane_ransac
@@ -271,7 +272,7 @@ def unrotate2d(pts):
         elif R[1,1]<0:
             R[:,1] *= -1
         else:
-            print "Rotation matrix not understood"
+            print("Rotation matrix not understood")
             return
     if R[0,0]<0 and R[1,1]<0:
         R *= -1

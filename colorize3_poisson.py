@@ -1,4 +1,5 @@
-import cv2 as cv
+from __future__ import print_function
+import cv2
 import numpy as np 
 import matplotlib.pyplot as plt 
 import scipy.interpolate as si
@@ -6,7 +7,7 @@ import scipy.ndimage as scim
 import scipy.ndimage.interpolation as sii
 import os
 import os.path as osp
-import cPickle as cp
+import _pickle as cp
 #import Image
 from PIL import Image
 from poisson_reconstruct import blit_images
@@ -38,20 +39,20 @@ class Layer(object):
         elif color.ndim==3: #rgb image
             self.color = color.copy().astype('uint8')
         else:
-            print color.shape
-            raise Exception("color datatype not understood")
+            print(color.shape)
+            raise(Exception("color datatype not understood"))
 
 class FontColor(object):
 
     def __init__(self, col_file):
-        with open(col_file,'r') as f:
-            self.colorsRGB = cp.load(f)
+        with open(col_file,'rb') as f:
+            self.colorsRGB = cp.load(f, encoding='latin1')
         self.ncol = self.colorsRGB.shape[0]
 
         # convert color-means from RGB to LAB for better nearest neighbour
         # computations:
         self.colorsLAB = np.r_[self.colorsRGB[:,0:3], self.colorsRGB[:,6:9]].astype('uint8')
-        self.colorsLAB = np.squeeze(cv.cvtColor(self.colorsLAB[None,:,:],cv.cv.CV_RGB2Lab))
+        self.colorsLAB = np.squeeze(cv2.cvtColor(self.colorsLAB[None,:,:],cv2.COLOR_RGB2Lab))
 
 
     def sample_normal(self, col_mean, col_std):
@@ -70,7 +71,7 @@ class FontColor(object):
         each of these is a 3-vector.
         """
         bg_orig = bg_mat.copy()
-        bg_mat = cv.cvtColor(bg_mat, cv.cv.CV_RGB2Lab)
+        bg_mat = cv2.cvtColor(bg_mat, cv2.COLOR_RGB2Lab)
         bg_mat = np.reshape(bg_mat, (np.prod(bg_mat.shape[:2]),3))
         bg_mean = np.mean(bg_mat,axis=0)
 
@@ -92,10 +93,10 @@ class FontColor(object):
             return (col1, col2)
 
     def mean_color(self, arr):
-        col = cv.cvtColor(arr, cv.cv.CV_RGB2HSV)
+        col = cv2.cvtColor(arr, cv2.COLOR_RGB2HSV)
         col = np.reshape(col, (np.prod(col.shape[:2]),3))
         col = np.mean(col,axis=0).astype('uint8')
-        return np.squeeze(cv.cvtColor(col[None,None,:],cv.cv.CV_HSV2RGB))
+        return np.squeeze(cv2.cvtColor(col[None,None,:],cv2.COLOR_HSV2RGB))
 
     def invert(self, rgb):
         rgb = 127 + rgb
@@ -105,9 +106,9 @@ class FontColor(object):
         """
         return a color which is complementary to the RGB_COLOR.
         """
-        col_hsv = np.squeeze(cv.cvtColor(rgb_color[None,None,:], cv.cv.CV_RGB2HSV))
+        col_hsv = np.squeeze(cv2.cvtColor(rgb_color[None,None,:], cv2.COLOR_RGB2HSV))
         col_hsv[0] = col_hsv[0] + 128 #uint8 mods to 255
-        col_comp = np.squeeze(cv.cvtColor(col_hsv[None,None,:],cv.cv.CV_HSV2RGB))
+        col_comp = np.squeeze(cv2.cvtColor(col_hsv[None,None,:],cv2.COLOR_HSV2RGB))
         return col_comp
 
     def triangle_color(self, col1, col2):
@@ -115,24 +116,24 @@ class FontColor(object):
         Returns a color which is "opposite" to both col1 and col2.
         """
         col1, col2 = np.array(col1), np.array(col2)
-        col1 = np.squeeze(cv.cvtColor(col1[None,None,:], cv.cv.CV_RGB2HSV))
-        col2 = np.squeeze(cv.cvtColor(col2[None,None,:], cv.cv.CV_RGB2HSV))
+        col1 = np.squeeze(cv2.cvtColor(col1[None,None,:], cv2.COLOR_RGB2HSV))
+        col2 = np.squeeze(cv2.cvtColor(col2[None,None,:], cv2.COLOR_RGB2HSV))
         h1, h2 = col1[0], col2[0]
         if h2 < h1 : h1,h2 = h2,h1 #swap
         dh = h2-h1
         if dh < 127: dh = 255-dh
         col1[0] = h1 + dh/2
-        return np.squeeze(cv.cvtColor(col1[None,None,:],cv.cv.CV_HSV2RGB))
+        return np.squeeze(cv2.cvtColor(col1[None,None,:],cv2.COLOR_HSV2RGB))
 
     def change_value(self, col_rgb, v_std=50):
-        col = np.squeeze(cv.cvtColor(col_rgb[None,None,:], cv.cv.CV_RGB2HSV))
+        col = np.squeeze(cv2.cvtColor(col_rgb[None,None,:], cv2.COLOR_RGB2HSV))
         x = col[2]
         vs = np.linspace(0,1)
         ps = np.abs(vs - x/255.0)
         ps /= np.sum(ps)
         v_rand = np.clip(np.random.choice(vs,p=ps) + 0.1*np.random.randn(),0,1)
         col[2] = 255*v_rand
-        return np.squeeze(cv.cvtColor(col[None,None,:],cv.cv.CV_HSV2RGB))
+        return np.squeeze(cv2.cvtColor(col[None,None,:],cv2.COLOR_HSV2RGB))
 
 
 class Colorize(object):
@@ -167,7 +168,7 @@ class Colorize(object):
         if size%2==0:
             size -= 1
             size = max(1,size)
-        shadow = cv.GaussianBlur(alpha,(size,size),0)
+        shadow = cv2.GaussianBlur(alpha,(size,size),0)
         [dx,dy] = shift * np.array([-np.sin(theta), np.cos(theta)])
         shadow = op*sii.shift(shadow, shift=[dx,dy],mode='constant',cval=0)
         return shadow.astype('uint8')
@@ -180,10 +181,10 @@ class Colorize(object):
 
         @return : alpha layer of the border (color to be added externally).
         """
-        kdict = {'RECT':cv.MORPH_RECT, 'ELLIPSE':cv.MORPH_ELLIPSE,
-                 'CROSS':cv.MORPH_CROSS}
-        kernel = cv.getStructuringElement(kdict[kernel_type],(size,size))
-        border = cv.dilate(alpha,kernel,iterations=1) # - alpha
+        kdict = {'RECT':cv2.MORPH_RECT, 'ELLIPSE':cv2.MORPH_ELLIPSE,
+                 'CROSS':cv2.MORPH_CROSS}
+        kernel = cv2.getStructuringElement(kdict[kernel_type],(size,size))
+        border = cv2.dilate(alpha,kernel,iterations=1) # - alpha
         return border
 
     def blend(self,cf,cb,mode='normal'):
@@ -253,7 +254,7 @@ class Colorize(object):
         """
         choice = np.random.choice(3)
 
-        col_text = cv.cvtColor(col_text, cv.cv.CV_RGB2HSV)
+        col_text = cv2.cvtColor(col_text, cv2.COLOR_RGB2HSV)
         col_text = np.reshape(col_text, (np.prod(col_text.shape[:2]),3))
         col_text = np.mean(col_text,axis=0).astype('uint8')
 
@@ -268,24 +269,24 @@ class Colorize(object):
         if choice==0:
             # increase/decrease saturation:
             col_text[0] = get_sample(col_text[0]) # saturation
-            col_text = np.squeeze(cv.cvtColor(col_text[None,None,:],cv.cv.CV_HSV2RGB))
+            col_text = np.squeeze(cv2.cvtColor(col_text[None,None,:],cv2.COLOR_HSV2RGB))
         elif choice==1:
             # get the complementary color to text:
-            col_text = np.squeeze(cv.cvtColor(col_text[None,None,:],cv.cv.CV_HSV2RGB))
+            col_text = np.squeeze(cv2.cvtColor(col_text[None,None,:],cv2.COLOR_HSV2RGB))
             col_text = self.font_color.complement(col_text)
         else:
             # choose a mid-way color:
-            col_bg = cv.cvtColor(col_bg, cv.cv.CV_RGB2HSV)
+            col_bg = cv2.cvtColor(col_bg, cv2.COLOR_RGB2HSV)
             col_bg = np.reshape(col_bg, (np.prod(col_bg.shape[:2]),3))
             col_bg = np.mean(col_bg,axis=0).astype('uint8')
-            col_bg = np.squeeze(cv.cvtColor(col_bg[None,None,:],cv.cv.CV_HSV2RGB))
-            col_text = np.squeeze(cv.cvtColor(col_text[None,None,:],cv.cv.CV_HSV2RGB))
+            col_bg = np.squeeze(cv2.cvtColor(col_bg[None,None,:],cv2.COLOR_HSV2RGB))
+            col_text = np.squeeze(cv2.cvtColor(col_text[None,None,:],cv2.COLOR_HSV2RGB))
             col_text = self.font_color.triangle_color(col_text,col_bg)
 
         # now change the VALUE channel:        
-        col_text = np.squeeze(cv.cvtColor(col_text[None,None,:],cv.cv.CV_RGB2HSV))
+        col_text = np.squeeze(cv2.cvtColor(col_text[None,None,:],cv2.COLOR_RGB2HSV))
         col_text[2] = get_sample(col_text[2]) # value
-        return np.squeeze(cv.cvtColor(col_text[None,None,:],cv.cv.CV_HSV2RGB))
+        return np.squeeze(cv2.cvtColor(col_text[None,None,:],cv2.COLOR_HSV2RGB))
 
     def color_text(self, text_arr, h, bg_arr):
         """
@@ -393,8 +394,8 @@ class Colorize(object):
         """
         bgo,txto = bg.copy(), txt_bg.copy()
         txt_mask = txt_mask.astype('bool')
-        bg = cv.cvtColor(bg.copy(), cv.cv.CV_RGB2Lab)
-        txt_bg = cv.cvtColor(txt_bg.copy(), cv.cv.CV_RGB2Lab)
+        bg = cv2.cvtColor(bg.copy(), cv2.COLOR_RGB2Lab)
+        txt_bg = cv2.cvtColor(txt_bg.copy(), cv2.COOR_RGB2Lab)
         bg_px = bg[txt_mask,:]
         txt_px = txt_bg[txt_mask,:]
         bg_px[:,0] *= 100.0/255.0 #rescale - L channel
@@ -402,7 +403,7 @@ class Colorize(object):
 
         diff = np.linalg.norm(bg_px-txt_px,ord=None,axis=1)
         diff = np.percentile(diff,[10,30,50,70,90])
-        print "color diff percentile :", diff
+        print("color diff percentile :", diff)
         return diff, (bgo,txto)
 
     def color(self, bg_arr, text_arr, hs, place_order=None, pad=20):
@@ -425,7 +426,7 @@ class Colorize(object):
 
         # initialize the placement order:
         if place_order is None:
-            place_order = np.array(xrange(len(text_arr)))
+            place_order = np.array(range(len(text_arr)))
 
         rendered = []
         for i in place_order[::-1]:

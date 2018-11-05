@@ -5,6 +5,7 @@
 Visualize the generated localization synthetic
 data stored in h5 data-bases
 """
+from __future__ import print_function
 from __future__ import division
 import os
 import os.path as osp
@@ -53,7 +54,7 @@ def viz_textbb(text_im, charBB_list, wordBB, alpha=1.0):
 def main(db_fname):
     db = h5py.File(db_fname, 'r')
     dsets = sorted(db['data'].keys())
-    print "total number of images : ", colorize(Color.RED, len(dsets), highlight=True)
+    print("total number of images : ", colorize(Color.RED, len(dsets), highlight=True))
     for k in dsets:
         rgb = db['data'][k][...]
         charBB = db['data'][k].attrs['charBB']
@@ -61,10 +62,10 @@ def main(db_fname):
         txt = db['data'][k].attrs['txt']
 
         viz_textbb(rgb, [charBB], wordBB)
-        print "image name        : ", colorize(Color.RED, k, bold=True)
-        print "  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1])
-        print "  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1])
-        print "  ** text         : ", colorize(Color.GREEN, txt)
+        print("image name        : ", colorize(Color.RED, k, bold=True))
+        print("  ** no. of chars : ", colorize(Color.YELLOW, charBB.shape[-1]))
+        print("  ** no. of words : ", colorize(Color.YELLOW, wordBB.shape[-1]))
+        print("  ** text         : ", colorize(Color.GREEN, txt))
 
         if 'q' in raw_input("next? ('q' to exit) : "):
             break

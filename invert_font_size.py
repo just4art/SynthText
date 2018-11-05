@@ -7,7 +7,7 @@ from pygame import freetype
 from text_utils import FontState
 import numpy as np 
 import matplotlib.pyplot as plt 
-import cPickle as cp
+import pickle as cp
 
 
 pygame.init()
@@ -33,7 +33,7 @@ for i in xrange(len(FS.fonts)):
 	models[font.name] = m
 	xs.append(h)
 
-with open('font_px2pt.cp','w') as f:
+with open('font_px2pt.cp','wb') as f:
 	cp.dump(models,f)
 #plt.plot(xs,ys[i])
 #plt.show()
