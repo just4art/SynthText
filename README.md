@@ -28,7 +28,7 @@ This will download a data file (~56M) to the `data` directory. This data file in
 This script will generate random scene-text image samples and store them in an h5 file in `results/SynthText.h5`. If the `--viz` option is specified, the generated output will be visualized as the script is being run; omit the `--viz` option to turn-off the visualizations. If you want to visualize the results stored in  `results/SynthText.h5` later, run:
 
 ```
-python visualize_results.py
+python3 visualize_results.py
 ```
 ### Pre-generated Dataset
 A dataset with approximately 800000 synthetic scene-text images generated with this code can be found [here](http://www.robots.ox.ac.uk/~vgg/data/scenetext/).
